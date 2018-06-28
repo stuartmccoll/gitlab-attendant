@@ -102,3 +102,10 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# Visual Studio Code project settings
+.vscode/
+
+# Pyre
+.pyre/
+.pyre_configuration
