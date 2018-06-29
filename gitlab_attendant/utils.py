@@ -6,7 +6,7 @@ from requests.packages.urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 
 
-def get_request(request_url: str) -> dict:
+def get_request(request_url: str, token: str) -> dict:
     """
     Wrapper for HTTP GET requests.
     """
@@ -21,7 +21,7 @@ def get_request(request_url: str) -> dict:
     session.mount("https://", HTTPAdapter(max_retries=retries))
 
     try:
-        response = session.get(request_url)
+        response = session.get(request_url, headers={"Private-Token": token})
         response.raise_for_status()
     except requests.exceptions.RequestException as ex:
         print(
