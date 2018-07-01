@@ -1,17 +1,22 @@
+import dateutil.parser
 import pytz
 import random
 
 from datetime import datetime, timedelta
-from dateutil import parser
 
 from api_calls import (
+    assign_user_to_merge_request,
     get_all_open_merge_requests,
     get_all_project_members,
-    assign_user_to_merge_request,
 )
 
 
 def assign_open_merge_requests(cli_args: dict):
+    """
+    Find merge requests that have been open for longer than 24 hours with
+    no assigned project member. Find possible project members for each
+    merge request and assign them accordingly.
+    """
     open_merge_requests = get_all_open_merge_requests(cli_args)
 
     # Discard open merge requests that are marked as work in progress
@@ -28,8 +33,9 @@ def assign_open_merge_requests(cli_args: dict):
         open_merge_requests.remove(merge_request)
         for merge_request in open_merge_requests
         if (
-            current_timestamp - parser.parse(merge_request["created_at"])
-            > timedelta(1)
+            current_timestamp
+            - dateutil.parser.parse(merge_request["created_at"])
+            < timedelta(1)
         )
     ]
 
@@ -37,8 +43,12 @@ def assign_open_merge_requests(cli_args: dict):
     [
         open_merge_requests.remove(merge_request)
         for merge_request in open_merge_requests
-        if "assignee" not in merge_request  # TODO: Remove 'not'
+        if merge_request["assignee"]
     ]
+
+    # If we have no applicable merge requests then exit the function
+    if not open_merge_requests:
+        pass
 
     # Get all project members
     all_project_members = {
@@ -57,9 +67,11 @@ def assign_open_merge_requests(cli_args: dict):
         for project_member in all_project_members[merge_request["project_id"]]:
             if project_member["id"] != merge_request["author"]["id"]:
                 clean_project_members.append(project_member["id"])
-        assign_user_to_merge_request(
-            cli_args,
-            merge_request["project_id"],
-            merge_request["iid"],
-            secure_random.choice(clean_project_members),
-        )
+        if clean_project_members:
+            chosen_project_member = secure_random.choice(clean_project_members)
+            assign_user_to_merge_request(
+                cli_args,
+                merge_request["project_id"],
+                merge_request["iid"],
+                chosen_project_member,
+            )
