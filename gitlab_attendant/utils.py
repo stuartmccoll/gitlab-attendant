@@ -37,17 +37,8 @@ def put_request(request_url: str, token: str, body: dict) -> dict:
     Wrapper for HTTP PUT requests.
     """
 
-    session = requests.Session()
-
-    # Define the maximum number of retries and the time between each one
-    retries = Retry(total=5, backoff_factor=0.1)
-
-    # Mount both HTTP and HTTPS protocols
-    session.mount("http://", HTTPAdapter(max_retries=retries))
-    session.mount("https://", HTTPAdapter(max_retries=retries))
-
     try:
-        response = session.put(
+        response = requests.put(
             request_url, headers={"Private-Token": token}, data=body
         )
         response.raise_for_status()
