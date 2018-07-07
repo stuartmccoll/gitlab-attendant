@@ -4,7 +4,7 @@ import random
 
 from datetime import datetime, timedelta
 
-from api_calls import (
+from gitlab_attendant.api_calls import (
     assign_user_to_merge_request,
     get_all_open_merge_requests,
     get_all_project_members,
