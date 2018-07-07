@@ -1,4 +1,4 @@
-from utils import get_request, put_request
+from gitlab_attendant.utils import get_request, put_request
 
 
 def get_all_projects(cli_args: dict) -> list:
