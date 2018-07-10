@@ -5,6 +5,7 @@ import random
 from datetime import datetime, timedelta
 
 from gitlab_attendant.api_calls import (
+    add_note_to_merge_request,
     assign_user_to_merge_request,
     get_all_open_merge_requests,
     get_all_project_members,
@@ -75,3 +76,61 @@ def assign_open_merge_requests(cli_args: dict):
                 merge_request["iid"],
                 chosen_project_member,
             )
+
+
+def notify_stale_merge_request_assignees(cli_args: dict, days: int):
+    """
+    Find merge requests that have been open for longer than X days with
+    an assigned project member. Add a comment to the open merge request
+    referencing the assigned project member to notify them.
+    """
+
+    open_merge_requests = get_all_open_merge_requests(cli_args)
+
+    # Discard open merge requests that are marked as work in progress
+    [
+        open_merge_requests.remove(merge_request)
+        for merge_request in open_merge_requests
+        if merge_request["work_in_progress"]
+    ]
+
+    current_timestamp = pytz.utc.localize(datetime.utcnow())
+
+    # Discard open merge requests that aren't over X days old
+    [
+        open_merge_requests.remove(merge_request)
+        for merge_request in open_merge_requests
+        if (
+            current_timestamp
+            - dateutil.parser.parse(merge_request["created_at"])
+            < timedelta(days)
+        )
+    ]
+
+    # Discard open merge requests that don't have an assignee
+    [
+        open_merge_requests.remove(merge_request)
+        for merge_request in open_merge_requests
+        if not merge_request["assignee"]
+    ]
+
+    # If we have no applicable merge requests then exit the function
+    if not open_merge_requests:
+        pass
+
+    [
+        add_note_to_merge_request(
+            cli_args,
+            merge_request["project_id"],
+            merge_request["iid"],
+            merge_request["assignee"]["id"],
+            {
+                "body": f"Nudging user @{merge_request['assignee']['username']} - this merge request has been open since {merge_request['created_at']}. \n\n This could be merged without conflict."
+            }
+            if merge_request["merge_status"] == "can_be_merged"
+            else {
+                "body": f"Nudging user @{merge_request['assignee']['username']} - this merge request has been open since {merge_request['created_at']}. \n\n Merge conflicts exist."
+            },
+        )
+        for merge_request in open_merge_requests
+    ]
