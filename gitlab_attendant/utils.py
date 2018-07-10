@@ -49,3 +49,22 @@ def put_request(request_url: str, token: str, body: dict) -> dict:
         sys.exit(1)
 
     return response.json()
+
+
+def post_request(request_url: str, token: str, body: dict) -> dict:
+    """
+    Wrapper for HTTP POST requests.
+    """
+
+    try:
+        response = requests.post(
+            request_url, headers={"Private-Token": token}, data=body
+        )
+        response.raise_for_status()
+    except requests.exceptions.RequestException as ex:
+        print(
+            f"{traceback.extract_stack(None, 2)[0][2]} call to GitLab API failed with RequestException: {ex}"
+        )
+        sys.exit(1)
+
+    return response.json()

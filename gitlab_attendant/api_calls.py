@@ -1,4 +1,4 @@
-from gitlab_attendant.utils import get_request, put_request
+from gitlab_attendant.utils import get_request, post_request, put_request
 
 
 def get_all_projects(cli_args: dict) -> list:
@@ -56,3 +56,13 @@ def assign_user_to_merge_request(
     request_url = f"http://{cli_args['ip_address']}/api/v4/projects/{project_id}/merge_requests/{merge_id}"
     body = {"assignee_id": user_id}
     return put_request(request_url, cli_args["token"], body)
+
+
+def add_note_to_merge_request(
+    cli_args: dict, project_id: int, merge_id: int, user_id: int, note_body: str
+) -> dict:
+    """
+    Adds a note to the given merge request.
+    """
+    request_url = f"http://{cli_args['ip_address']}/api/v4/projects/{project_id}/merge_requests/{merge_id}/notes"
+    return post_request(request_url, cli_args["token"], note_body)
