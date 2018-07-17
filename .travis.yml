@@ -9,5 +9,5 @@ install:
 - pip install pytest-cov
 
 script:
-- python3 -m pytest --cov-report term-missing --cov=gitlab-attendant
+- python3 -m pytest --cov-report term-missing --cov=gitlab_attendant
 - pyre --source-directory . check
