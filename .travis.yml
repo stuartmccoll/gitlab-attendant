@@ -4,10 +4,11 @@ python:
   - "3.7-dev"
 
 install:
+- pip install python-dateutil
 - pip install requests
 - pip install pyre-check
 - pip install pytest-cov
+- pip install pytz
 
 script:
 - python3 -m pytest --cov-report term-missing --cov=gitlab_attendant
-- pyre --source-directory . check
