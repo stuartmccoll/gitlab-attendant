@@ -68,3 +68,22 @@ def post_request(request_url: str, token: str, body: dict) -> dict:
         sys.exit(1)
 
     return response.json()
+
+
+def delete_request(request_url: str, token: str) -> dict:
+    """
+    Wrapper for HTTP DELETE requests.
+    """
+
+    try:
+        response = requests.delete(
+            request_url, headers={"Private-Token": token}
+        )
+        response.raise_for_status()
+    except requests.exceptions.RequestException as ex:
+        print(
+            f"{traceback.extract_stack(None, 2)[0][2]} call to GitLab API failed with RequestException: {ex}"
+        )
+        sys.exit(1)
+
+    return response.json()

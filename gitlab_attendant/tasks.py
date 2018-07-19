@@ -7,8 +7,10 @@ from datetime import datetime, timedelta
 from gitlab_attendant.api_calls import (
     add_note_to_merge_request,
     assign_user_to_merge_request,
+    delete_merged_branches,
     get_all_open_merge_requests,
     get_all_project_members,
+    get_all_projects,
 )
 
 
@@ -134,3 +136,19 @@ def notify_stale_merge_request_assignees(cli_args: dict, days: int):
         )
         for merge_request in open_merge_requests
     ]
+
+
+def remove_merged_branches(cli_args: dict):
+    """
+    Find and delete branches that have been merged.
+    """
+
+    projects = get_all_projects(cli_args)
+
+    response_list = [
+        delete_merged_branches(cli_args, project["id"]) for project in projects
+    ]
+
+    for response in response_list:
+        if response["message"] != "202 Accepted":
+            print(f"Failed to delete branch, error: {response['message']}")
