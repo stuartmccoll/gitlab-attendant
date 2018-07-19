@@ -1,4 +1,9 @@
-from gitlab_attendant.utils import get_request, post_request, put_request
+from gitlab_attendant.utils import (
+    delete_request,
+    get_request,
+    post_request,
+    put_request,
+)
 
 
 def get_all_projects(cli_args: dict) -> list:
@@ -66,3 +71,12 @@ def add_note_to_merge_request(
     """
     request_url = f"http://{cli_args['ip_address']}/api/v4/projects/{project_id}/merge_requests/{merge_id}/notes"
     return post_request(request_url, cli_args["token"], note_body)
+
+
+def delete_merged_branches(cli_args: dict, project_id: int):
+    """
+    Queries the GitLab API and returns branches that have been merged.
+    """
+
+    request_url = f"http://{cli_args['ip_address']}/api/v4/projects/{project_id}/repository/merged_branches"
+    return delete_request(request_url, cli_args["token"])
