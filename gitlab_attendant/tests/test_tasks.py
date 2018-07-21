@@ -1,12 +1,15 @@
+import contextlib
 import mock
 import pytz
 import unittest
 
 from datetime import datetime, timedelta
+from io import StringIO
 
 from gitlab_attendant.tasks import (
     assign_open_merge_requests,
     notify_stale_merge_request_assignees,
+    remove_merged_branches,
 )
 
 
@@ -361,3 +364,47 @@ class TestTasks(unittest.TestCase):
 
         self.assertEqual(mock_add_note_to_merge_request.called, False)
         self.assertEqual(mock_add_note_to_merge_request.call_count, 0)
+
+    @mock.patch("gitlab_attendant.tasks.delete_merged_branches")
+    @mock.patch("gitlab_attendant.tasks.get_all_projects")
+    def test_remove_merged_branches(
+        self, mock_get_all_projects, mock_delete_merged_branches
+    ):
+        cli_args = {"ip_address": "localhost", "interval": 1, "token": "test"}
+
+        mock_get_all_projects.return_value = [{"id": 1}]
+
+        mock_delete_merged_branches.side_effect = [{"message": "202 Accepted"}]
+
+        temp_stdout = StringIO()
+        with contextlib.redirect_stdout(temp_stdout):
+            remove_merged_branches(cli_args)
+
+        self.assertEqual(mock_delete_merged_branches.called, True)
+        self.assertEqual(mock_delete_merged_branches.call_count, 1)
+        self.assertEqual(temp_stdout.getvalue().strip(), "")
+
+    @mock.patch("gitlab_attendant.tasks.delete_merged_branches")
+    @mock.patch("gitlab_attendant.tasks.get_all_projects")
+    def test_remove_merged_branches_with_errors(
+        self, mock_get_all_projects, mock_delete_merged_branches
+    ):
+        cli_args = {"ip_address": "localhost", "interval": 1, "token": "test"}
+
+        mock_get_all_projects.return_value = [{"id": 1}, {"id": 2}]
+
+        mock_delete_merged_branches.side_effect = [
+            {"message": "202 Accepted"},
+            {"message": "Something went wrong..."},
+        ]
+
+        temp_stdout = StringIO()
+        with contextlib.redirect_stdout(temp_stdout):
+            remove_merged_branches(cli_args)
+
+        self.assertEqual(mock_delete_merged_branches.called, True)
+        self.assertEqual(mock_delete_merged_branches.call_count, 2)
+        self.assertEqual(
+            temp_stdout.getvalue().strip(),
+            "Failed to delete branch, error: Something went wrong...",
+        )
