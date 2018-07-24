@@ -12,6 +12,7 @@ from gitlab_attendant.api_calls import (
     get_all_project_members,
     get_all_projects,
 )
+from gitlab_attendant.log_handlers import logger
 
 
 def assign_open_merge_requests(cli_args: dict):
@@ -151,4 +152,6 @@ def remove_merged_branches(cli_args: dict):
 
     for response in response_list:
         if response["message"] != "202 Accepted":
-            print(f"Failed to delete branch, error: {response['message']}")
+            logger.error(
+                f"Failed to delete branch, error: {response['message']}"
+            )

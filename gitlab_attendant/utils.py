@@ -5,6 +5,8 @@ import traceback
 from requests.packages.urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 
+from gitlab_attendant.log_handlers import logger
+
 
 def get_request(request_url: str, token: str) -> dict:
     """
@@ -21,10 +23,17 @@ def get_request(request_url: str, token: str) -> dict:
     session.mount("https://", HTTPAdapter(max_retries=retries))
 
     try:
+        logger.debug(f"Making GET request to {request_url}...")
         response = session.get(request_url, headers={"Private-Token": token})
+        logger.debug(
+            f"Response status code from GET request to {request_url}: {response.status_code}"
+        )
+        logger.debug(
+            f"Response body from GET request to {request_url}: {response.json()}"
+        )
         response.raise_for_status()
     except requests.exceptions.RequestException as ex:
-        print(
+        logger.error(
             f"{traceback.extract_stack(None, 2)[0][2]} call to GitLab API failed with RequestException: {ex}"
         )
         sys.exit(1)
@@ -38,12 +47,21 @@ def put_request(request_url: str, token: str, body: dict) -> dict:
     """
 
     try:
+        logger.debug(
+            f"Making PUT request to {request_url} with payload: {body}..."
+        )
         response = requests.put(
             request_url, headers={"Private-Token": token}, data=body
         )
+        logger.debug(
+            f"Response status code from PUT request to {request_url}: {response.status_code}"
+        )
+        logger.debug(
+            f"Response body from PUT request to {request_url}: {response.json()}"
+        )
         response.raise_for_status()
     except requests.exceptions.RequestException as ex:
-        print(
+        logger.error(
             f"{traceback.extract_stack(None, 2)[0][2]} call to GitLab API failed with RequestException: {ex}"
         )
         sys.exit(1)
@@ -57,12 +75,21 @@ def post_request(request_url: str, token: str, body: dict) -> dict:
     """
 
     try:
+        logger.debug(
+            f"Making POST request to {request_url} with payload: {body}..."
+        )
         response = requests.post(
             request_url, headers={"Private-Token": token}, data=body
         )
+        logger.debug(
+            f"Response status code from POST request to {request_url}: {response.status_code}"
+        )
+        logger.debug(
+            f"Response body from POST request to {request_url}: {response.json()}"
+        )
         response.raise_for_status()
     except requests.exceptions.RequestException as ex:
-        print(
+        logger.error(
             f"{traceback.extract_stack(None, 2)[0][2]} call to GitLab API failed with RequestException: {ex}"
         )
         sys.exit(1)
@@ -76,12 +103,19 @@ def delete_request(request_url: str, token: str) -> dict:
     """
 
     try:
+        logger.debug(f"Making DELETE request to {request_url}...")
         response = requests.delete(
             request_url, headers={"Private-Token": token}
         )
+        logger.debug(
+            f"Response status code from DELETE request to {request_url}: {response.status_code}"
+        )
+        logger.debug(
+            f"Response body from DELETE request to {request_url}: {response.json()}"
+        )
         response.raise_for_status()
     except requests.exceptions.RequestException as ex:
-        print(
+        logger.error(
             f"{traceback.extract_stack(None, 2)[0][2]} call to GitLab API failed with RequestException: {ex}"
         )
         sys.exit(1)
