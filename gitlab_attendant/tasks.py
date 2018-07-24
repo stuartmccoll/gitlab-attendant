@@ -152,6 +152,6 @@ def remove_merged_branches(cli_args: dict):
 
     for response in response_list:
         if response["message"] != "202 Accepted":
-            logger.info(
+            logger.error(
                 f"Failed to delete branch, error: {response['message']}"
             )
