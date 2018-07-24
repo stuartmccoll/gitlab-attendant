@@ -384,10 +384,11 @@ class TestTasks(unittest.TestCase):
         self.assertEqual(mock_delete_merged_branches.call_count, 1)
         self.assertEqual(temp_stdout.getvalue().strip(), "")
 
+    @mock.patch("gitlab_attendant.tasks.logger.error")
     @mock.patch("gitlab_attendant.tasks.delete_merged_branches")
     @mock.patch("gitlab_attendant.tasks.get_all_projects")
     def test_remove_merged_branches_with_errors(
-        self, mock_get_all_projects, mock_delete_merged_branches
+        self, mock_get_all_projects, mock_delete_merged_branches, mock_log_error
     ):
         cli_args = {"ip_address": "localhost", "interval": 1, "token": "test"}
 
@@ -398,13 +399,9 @@ class TestTasks(unittest.TestCase):
             {"message": "Something went wrong..."},
         ]
 
-        temp_stdout = StringIO()
-        with contextlib.redirect_stdout(temp_stdout):
-            remove_merged_branches(cli_args)
+        remove_merged_branches(cli_args)
 
         self.assertEqual(mock_delete_merged_branches.called, True)
         self.assertEqual(mock_delete_merged_branches.call_count, 2)
-        self.assertEqual(
-            temp_stdout.getvalue().strip(),
-            "Failed to delete branch, error: Something went wrong...",
-        )
+        self.assertEqual(mock_log_error.called, True)
+        self.assertEqual(mock_log_error.call_count, 1)
