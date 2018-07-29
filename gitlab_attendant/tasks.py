@@ -6,11 +6,13 @@ from datetime import datetime, timedelta
 
 from gitlab_attendant.api_calls import (
     add_note_to_merge_request,
+    assign_issue,
     assign_user_to_merge_request,
     delete_merged_branches,
     get_all_open_merge_requests,
     get_all_project_members,
     get_all_projects,
+    get_all_open_issues,
 )
 from gitlab_attendant.log_handlers import logger
 
@@ -154,4 +156,47 @@ def remove_merged_branches(cli_args: dict):
         if response["message"] != "202 Accepted":
             logger.error(
                 f"Failed to delete branch, error: {response['message']}"
+            )
+
+
+def assign_project_members_to_issues(cli_args: dict):
+    """
+    Find issues that have not been assigned and then assign them to
+    a project member selected at random.
+    """
+
+    all_open_issues = get_all_open_issues(cli_args)
+
+    unassigned_open_issues = [
+        unassigned_open_issue
+        for unassigned_open_issue in all_open_issues
+        if not unassigned_open_issue["assignees"]
+        and not unassigned_open_issue["assignee"]
+    ]
+
+    if not unassigned_open_issues:
+        pass
+
+    # Get all project members
+    all_project_members = {
+        unassigned_open_issue["project_id"]: get_all_project_members(
+            cli_args, unassigned_open_issue["project_id"]
+        )
+        for unassigned_open_issue in unassigned_open_issues
+    }
+
+    secure_random = random.SystemRandom()
+
+    # Select a project member at random
+    # and then assign them to the open issue
+    for unassigned_open_issue in unassigned_open_issues:
+        if all_project_members:
+            chosen_project_member = secure_random.choice(
+                all_project_members[unassigned_open_issue["project_id"]]
+            )
+            assign_issue(
+                cli_args,
+                unassigned_open_issue["project_id"],
+                unassigned_open_issue["iid"],
+                chosen_project_member["id"],
             )

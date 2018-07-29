@@ -1,3 +1,4 @@
+from gitlab_attendant.log_handlers import logger
 from gitlab_attendant.utils import (
     delete_request,
     get_request,
@@ -80,3 +81,25 @@ def delete_merged_branches(cli_args: dict, project_id: int):
 
     request_url = f"http://{cli_args['ip_address']}/api/v4/projects/{project_id}/repository/merged_branches"
     return delete_request(request_url, cli_args["token"])
+
+
+def get_all_open_issues(cli_args: dict):
+    """
+    Queries the GitLab API and returns all open issues.
+    """
+
+    request_url = f"http://{cli_args['ip_address']}/api/v4/issues?state=opened"
+    return get_request(request_url, cli_args["token"])
+
+
+def assign_issue(cli_args: dict, project_id: int, issue_id: int, user_id: int):
+    """
+    Queries the GitLab API and assigns an issue to a specified user.
+    """
+
+    logger.info(
+        f"Assigning issue {issue_id} of project {project_id} to user {user_id}..."
+    )
+    request_url = f"http://{cli_args['ip_address']}/api/v4/projects/{project_id}/issues/{issue_id}"
+    body = {"assignee_ids": [user_id]}
+    return put_request(request_url, cli_args["token"], body)
