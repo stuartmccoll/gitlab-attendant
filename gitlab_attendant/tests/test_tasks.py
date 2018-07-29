@@ -8,6 +8,7 @@ from io import StringIO
 
 from gitlab_attendant.tasks import (
     assign_open_merge_requests,
+    assign_project_members_to_issues,
     notify_stale_merge_request_assignees,
     remove_merged_branches,
 )
@@ -405,3 +406,121 @@ class TestTasks(unittest.TestCase):
         self.assertEqual(mock_delete_merged_branches.call_count, 2)
         self.assertEqual(mock_log_error.called, True)
         self.assertEqual(mock_log_error.call_count, 1)
+
+    @mock.patch("gitlab_attendant.tasks.assign_issue")
+    @mock.patch("gitlab_attendant.tasks.get_all_project_members")
+    @mock.patch("gitlab_attendant.tasks.get_all_open_issues")
+    def test_assign_project_members_to_open_issues_multiple_project_members(
+        self, mock_all_open_issues, mock_all_project_members, mock_assign_issue
+    ):
+        cli_args = {"ip_address": "localhost", "interval": 1, "token": "test"}
+
+        mock_all_open_issues.return_value = [
+            {
+                "id": 1,
+                "iid": 1,
+                "project_id": 1,
+                "assignee": {"id": 1},
+                "assignees": [],
+            },
+            {
+                "id": 2,
+                "iid": 2,
+                "project_id": 1,
+                "assignee": None,
+                "assignees": [],
+            },
+        ]
+
+        mock_all_project_members.return_value = [
+            {"id": 1, "iid": 1},
+            {"id": 2, "iid": 2},
+        ]
+
+        assign_project_members_to_issues(cli_args)
+
+        self.assertEqual(mock_assign_issue.called, True)
+        self.assertEqual(mock_assign_issue.call_count, 1)
+        mock_assign_issue.assert_called_with(cli_args, 1, mock.ANY, mock.ANY)
+
+    @mock.patch("gitlab_attendant.tasks.assign_issue")
+    @mock.patch("gitlab_attendant.tasks.get_all_project_members")
+    @mock.patch("gitlab_attendant.tasks.get_all_open_issues")
+    def test_assign_project_members_to_open_issues_single_project_member(
+        self, mock_all_open_issues, mock_all_project_members, mock_assign_issue
+    ):
+        cli_args = {"ip_address": "localhost", "interval": 1, "token": "test"}
+
+        mock_all_open_issues.return_value = [
+            {
+                "id": 1,
+                "iid": 1,
+                "project_id": 1,
+                "assignee": None,
+                "assignees": [{"id": 1}, {"id": 2}],
+            },
+            {
+                "id": 2,
+                "iid": 2,
+                "project_id": 1,
+                "assignee": None,
+                "assignees": [],
+            },
+        ]
+
+        mock_all_project_members.return_value = [{"id": 1, "iid": 1}]
+
+        assign_project_members_to_issues(cli_args)
+
+        self.assertEqual(mock_assign_issue.called, True)
+        self.assertEqual(mock_assign_issue.call_count, 1)
+        mock_assign_issue.assert_called_with(cli_args, 1, 2, 1)
+
+    @mock.patch("gitlab_attendant.tasks.assign_issue")
+    @mock.patch("gitlab_attendant.tasks.get_all_project_members")
+    @mock.patch("gitlab_attendant.tasks.get_all_open_issues")
+    def test_assign_project_members_to_open_issues_all_assigned(
+        self, mock_all_open_issues, mock_all_project_members, mock_assign_issue
+    ):
+        cli_args = {"ip_address": "localhost", "interval": 1, "token": "test"}
+
+        mock_all_open_issues.return_value = [
+            {
+                "id": 1,
+                "iid": 1,
+                "project_id": 1,
+                "assignee": None,
+                "assignees": [{"id": 1}, {"id": 2}],
+            },
+            {
+                "id": 2,
+                "iid": 2,
+                "project_id": 1,
+                "assignee": {"id": 1},
+                "assignees": [],
+            },
+        ]
+
+        mock_all_project_members.return_value = [{"id": 1, "iid": 1}]
+
+        assign_project_members_to_issues(cli_args)
+
+        self.assertEqual(mock_assign_issue.called, False)
+        self.assertEqual(mock_assign_issue.call_count, 0)
+
+    @mock.patch("gitlab_attendant.tasks.assign_issue")
+    @mock.patch("gitlab_attendant.tasks.get_all_project_members")
+    @mock.patch("gitlab_attendant.tasks.get_all_open_issues")
+    def test_assign_project_members_to_open_issues_no_open_issues(
+        self, mock_all_open_issues, mock_all_project_members, mock_assign_issue
+    ):
+        cli_args = {"ip_address": "localhost", "interval": 1, "token": "test"}
+
+        mock_all_open_issues.return_value = []
+
+        assign_project_members_to_issues(cli_args)
+
+        self.assertEqual(mock_all_project_members.called, False)
+        self.assertEqual(mock_all_project_members.call_count, 0)
+        self.assertEqual(mock_assign_issue.called, False)
+        self.assertEqual(mock_assign_issue.call_count, 0)
