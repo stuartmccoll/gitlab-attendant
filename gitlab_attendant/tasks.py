@@ -5,6 +5,7 @@ import random
 from datetime import datetime, timedelta
 
 from gitlab_attendant.api_calls import (
+    add_note_to_issue,
     add_note_to_merge_request,
     assign_issue,
     assign_user_to_merge_request,
@@ -200,3 +201,88 @@ def assign_project_members_to_issues(cli_args: dict):
                 unassigned_open_issue["iid"],
                 chosen_project_member["id"],
             )
+
+
+def notify_issue_assignees(cli_args: dict, days: int):
+    """
+    Find assigned issues that are overdue and due within X days,
+    then notify the issue assignees accordingly.
+    """
+
+    all_open_issues = get_all_open_issues(cli_args)
+
+    # Filter out unassigned issues
+    assigned_open_issues = [
+        assigned_open_issue
+        for assigned_open_issue in all_open_issues
+        if assigned_open_issue["assignees"] or assigned_open_issue["assignee"]
+    ]
+
+    if not assigned_open_issues:
+        pass
+
+    # Filter out assigned issues without due dates
+    [
+        assigned_open_issues.remove(open_issue)
+        for open_issue in assigned_open_issues
+        if not open_issue["due_date"]
+    ]
+
+    current_timestamp = pytz.utc.localize(datetime.utcnow())
+
+    # Filter issues that are overdue into a new list
+    overdue_issues = [
+        open_issue
+        for open_issue in assigned_open_issues
+        if (
+            (
+                current_timestamp
+                - pytz.utc.localize(
+                    dateutil.parser.parse(open_issue["due_date"])
+                )
+            ).days
+            > 0
+        )
+    ]
+
+    # Filter issues that are due in under X days into a new list
+    due_issues = [
+        open_issue
+        for open_issue in assigned_open_issues
+        if (
+            pytz.utc.localize(dateutil.parser.parse(open_issue["due_date"]))
+            - current_timestamp
+            < timedelta(days)
+            and (
+                pytz.utc.localize(dateutil.parser.parse(open_issue["due_date"]))
+                - current_timestamp
+            ).days
+            > 0
+        )
+    ]
+
+    [
+        add_note_to_issue(
+            cli_args,
+            overdue_issue["project_id"],
+            overdue_issue["iid"],
+            overdue_issue["assignee"]["id"],
+            {
+                "body": f"Nudging user @{overdue_issue['assignee']['username']} - this issue was due on {overdue_issue['due_date']}."
+            },
+        )
+        for overdue_issue in overdue_issues
+    ]
+
+    [
+        add_note_to_issue(
+            cli_args,
+            due_issue["project_id"],
+            due_issue["iid"],
+            due_issue["assignee"]["id"],
+            {
+                "body": f"Nudging user @{due_issue['assignee']['username']} - this issue is due on {due_issue['due_date']}."
+            },
+        )
+        for due_issue in due_issues
+    ]

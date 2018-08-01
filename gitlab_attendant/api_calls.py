@@ -74,6 +74,16 @@ def add_note_to_merge_request(
     return post_request(request_url, cli_args["token"], note_body)
 
 
+def add_note_to_issue(
+    cli_args: dict, project_id: int, issue_id: int, user_id: int, note_body: str
+) -> dict:
+    """
+    Adds a note to the given issue.
+    """
+    request_url = f"http://{cli_args['ip_address']}/api/v4/projects/{project_id}/issues/{issue_id}/notes"
+    return post_request(request_url, cli_args["token"], note_body)
+
+
 def delete_merged_branches(cli_args: dict, project_id: int):
     """
     Queries the GitLab API and returns branches that have been merged.
