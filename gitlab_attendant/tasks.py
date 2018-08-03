@@ -266,9 +266,12 @@ def notify_issue_assignees(cli_args: dict, days: int):
             cli_args,
             overdue_issue["project_id"],
             overdue_issue["iid"],
-            overdue_issue["assignee"]["id"],
             {
                 "body": f"Nudging user @{overdue_issue['assignee']['username']} - this issue was due on {overdue_issue['due_date']}."
+            }
+            if overdue_issue["assignee"]
+            else {
+                "body": f"Nudging users @{','.join(str(user['username']) for user in overdue_issue['assignees'])} - this issue was due on {overdue_issue['due_date']}."
             },
         )
         for overdue_issue in overdue_issues
@@ -279,9 +282,12 @@ def notify_issue_assignees(cli_args: dict, days: int):
             cli_args,
             due_issue["project_id"],
             due_issue["iid"],
-            due_issue["assignee"]["id"],
             {
                 "body": f"Nudging user @{due_issue['assignee']['username']} - this issue is due on {due_issue['due_date']}."
+            }
+            if due_issue["assignee"]
+            else {
+                "body": f"Nudging users {', '.join(str('@{}'.format(user['username'])) for user in due_issue['assignees'])} - this issue is due on {due_issue['due_date']}."
             },
         )
         for due_issue in due_issues
