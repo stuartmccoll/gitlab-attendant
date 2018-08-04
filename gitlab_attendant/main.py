@@ -1,8 +1,17 @@
+import schedule
 import sys
+import time
 
 from argparse import ArgumentParser
 
-from tasks import assign_open_merge_requests
+from log_handlers import logger
+from tasks import (
+    assign_project_members_to_issues,
+    assign_open_merge_requests,
+    notify_issue_assignees,
+    notify_stale_merge_request_assignees,
+    remove_merged_branches,
+)
 
 
 def process_arguments() -> dict:
@@ -16,8 +25,8 @@ def process_arguments() -> dict:
     parser.add_argument(
         "--interval",
         dest="interval",
-        help="attend interval (ex. 1m, 10m, 1h)",
-        default="10m",
+        help="task scheduler interval in hours (ex. 1, 10)",
+        default="24",
         required=False,
     )
     parser.add_argument(
@@ -36,9 +45,32 @@ def process_arguments() -> dict:
     }
 
 
+def tasks(args):
+	"""
+	Function calls to the tasks that the GitLab Attendant
+	is capable of running.
+	"""
+	logger.info("GitLab Attendant has woken up...")
+	logger.info(f"GitLab Attendant will begin attending to GitLab instance at {args['ip_address']}...")
+
+	assign_project_members_to_issues(args)
+	assign_open_merge_requests(args)
+	notify_issue_assignees(args, 7)
+	notify_stale_merge_request_assignees(args, 7)
+	remove_merged_branches(args)
+
+
+
 def main():
-    args = process_arguments()
-    assign_open_merge_requests(args)
+	"""
+	Entrypoint to the application.
+	"""
+	args = process_arguments()
+	schedule.every(int(args["interval"])).hours.do(tasks, args)
+
+	while True:
+		schedule.run_pending()
+		time.sleep(1)
 
 
 if __name__ == "__main__":
