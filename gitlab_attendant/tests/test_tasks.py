@@ -585,3 +585,231 @@ class TestTasks(unittest.TestCase):
         ]
         mock_add_note_to_issue.assert_has_calls(calls)
         self.assertEqual(mock_add_note_to_issue.call_count, 2)
+
+    @mock.patch("gitlab_attendant.tasks.add_note_to_issue")
+    @mock.patch("gitlab_attendant.tasks.get_all_open_issues")
+    def test_notify_issue_assignees_no_assignees(
+        self, mock_all_open_issues, mock_add_note_to_issue
+    ):
+        due_date = datetime.strftime(
+            pytz.utc.localize(datetime.utcnow()) + timedelta(2), "%Y-%m-%d"
+        )
+        overdue_date = datetime.strftime(
+            pytz.utc.localize(datetime.utcnow()) - timedelta(8), "%Y-%m-%d"
+        )
+
+        mock_all_open_issues.return_value = [
+            {
+                "id": 1,
+                "iid": 1,
+                "project_id": 1,
+                "assignee": None,
+                "assignees": [],
+                "due_date": due_date,
+            },
+            {
+                "id": 2,
+                "iid": 2,
+                "project_id": 1,
+                "assignee": None,
+                "assignees": [],
+                "due_date": overdue_date,
+            },
+        ]
+
+        cli_args = {"ip_address": "localhost", "interval": 1, "token": "test"}
+
+        notify_issue_assignees(cli_args, 7)
+
+        self.assertEqual(mock_add_note_to_issue.called, False)
+        self.assertEqual(mock_add_note_to_issue.call_count, 0)
+
+    @mock.patch("gitlab_attendant.tasks.add_note_to_issue")
+    @mock.patch("gitlab_attendant.tasks.get_all_open_issues")
+    def test_notify_issue_assignees_singe_assignee(
+        self, mock_all_open_issues, mock_add_note_to_issue
+    ):
+        due_date = datetime.strftime(
+            pytz.utc.localize(datetime.utcnow()) + timedelta(2), "%Y-%m-%d"
+        )
+        overdue_date = datetime.strftime(
+            pytz.utc.localize(datetime.utcnow()) - timedelta(8), "%Y-%m-%d"
+        )
+
+        mock_all_open_issues.return_value = [
+            {
+                "id": 1,
+                "iid": 1,
+                "project_id": 1,
+                "assignee": {"id": 1, "username": "developer"},
+                "assignees": [],
+                "due_date": due_date,
+            },
+            {
+                "id": 2,
+                "iid": 2,
+                "project_id": 1,
+                "assignee": {"id": 2, "username": "tester"},
+                "assignees": [],
+                "due_date": overdue_date,
+            },
+        ]
+
+        cli_args = {"ip_address": "localhost", "interval": 1, "token": "test"}
+
+        notify_issue_assignees(cli_args, 7)
+
+        calls = [
+            mock.call(
+                cli_args,
+                1,
+                2,
+                {
+                    "body": f"Nudging user @tester - this issue was due on {overdue_date}."
+                },
+            ),
+            mock.call(
+                cli_args,
+                1,
+                1,
+                {
+                    "body": f"Nudging user @developer - this issue is due on {due_date}."
+                },
+            ),
+        ]
+
+        self.assertEqual(mock_add_note_to_issue.called, True)
+        mock_add_note_to_issue.assert_has_calls(calls)
+        self.assertEqual(mock_add_note_to_issue.call_count, 2)
+
+    @mock.patch("gitlab_attendant.tasks.add_note_to_issue")
+    @mock.patch("gitlab_attendant.tasks.get_all_open_issues")
+    def test_notify_issue_assignees_multiple_assignees(
+        self, mock_all_open_issues, mock_add_note_to_issue
+    ):
+        due_date = datetime.strftime(
+            pytz.utc.localize(datetime.utcnow()) + timedelta(2), "%Y-%m-%d"
+        )
+        overdue_date = datetime.strftime(
+            pytz.utc.localize(datetime.utcnow()) - timedelta(8), "%Y-%m-%d"
+        )
+
+        mock_all_open_issues.return_value = [
+            {
+                "id": 1,
+                "iid": 1,
+                "project_id": 1,
+                "assignee": None,
+                "assignees": [
+                    {"id": 1, "username": "developer"},
+                    {"id": 2, "username": "tester"},
+                ],
+                "due_date": due_date,
+            },
+            {
+                "id": 2,
+                "iid": 2,
+                "project_id": 1,
+                "assignee": None,
+                "assignees": [
+                    {"id": 3, "username": "test-user"},
+                    {"id": 4, "username": "admin-user"},
+                ],
+                "due_date": overdue_date,
+            },
+        ]
+
+        cli_args = {"ip_address": "localhost", "interval": 1, "token": "test"}
+
+        notify_issue_assignees(cli_args, 7)
+
+        calls = [
+            mock.call(
+                cli_args,
+                1,
+                2,
+                {
+                    "body": f"Nudging users @test-user, @admin-user - this issue was due on {overdue_date}."
+                },
+            ),
+            mock.call(
+                cli_args,
+                1,
+                1,
+                {
+                    "body": f"Nudging users @developer, @tester - this issue is due on {due_date}."
+                },
+            ),
+        ]
+
+        self.assertEqual(mock_add_note_to_issue.called, True)
+        mock_add_note_to_issue.assert_has_calls(calls)
+        self.assertEqual(mock_add_note_to_issue.call_count, 2)
+
+    @mock.patch("gitlab_attendant.tasks.add_note_to_issue")
+    @mock.patch("gitlab_attendant.tasks.get_all_open_issues")
+    def test_notify_issue_assignees_no_overdue_issues(
+        self, mock_all_open_issues, mock_add_note_to_issue
+    ):
+        due_date = datetime.strftime(
+            pytz.utc.localize(datetime.utcnow()) + timedelta(2), "%Y-%m-%d"
+        )
+
+        mock_all_open_issues.return_value = [
+            {
+                "id": 1,
+                "iid": 1,
+                "project_id": 1,
+                "assignee": None,
+                "assignees": [
+                    {"id": 1, "username": "developer"},
+                    {"id": 2, "username": "tester"},
+                ],
+                "due_date": due_date,
+            }
+        ]
+
+        cli_args = {"ip_address": "localhost", "interval": 1, "token": "test"}
+
+        notify_issue_assignees(cli_args, 7)
+
+        self.assertEqual(mock_add_note_to_issue.called, True)
+        mock_add_note_to_issue.assert_called_with(
+            cli_args,
+            1,
+            1,
+            {
+                "body": f"Nudging users @developer, @tester - this issue is due on {due_date}."
+            },
+        )
+        self.assertEqual(mock_add_note_to_issue.call_count, 1)
+
+    @mock.patch("gitlab_attendant.tasks.add_note_to_issue")
+    @mock.patch("gitlab_attendant.tasks.get_all_open_issues")
+    def test_notify_issue_assignees_no_due_issues(
+        self, mock_all_open_issues, mock_add_note_to_issue
+    ):
+        due_date = datetime.strftime(
+            pytz.utc.localize(datetime.utcnow()) + timedelta(10), "%Y-%m-%d"
+        )
+
+        mock_all_open_issues.return_value = [
+            {
+                "id": 1,
+                "iid": 1,
+                "project_id": 1,
+                "assignee": None,
+                "assignees": [
+                    {"id": 1, "username": "developer"},
+                    {"id": 2, "username": "tester"},
+                ],
+                "due_date": due_date,
+            }
+        ]
+
+        cli_args = {"ip_address": "localhost", "interval": 1, "token": "test"}
+
+        notify_issue_assignees(cli_args, 7)
+
+        self.assertEqual(mock_add_note_to_issue.called, False)
+        self.assertEqual(mock_add_note_to_issue.call_count, 0)

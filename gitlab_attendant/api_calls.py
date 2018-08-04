@@ -75,7 +75,7 @@ def add_note_to_merge_request(
 
 
 def add_note_to_issue(
-    cli_args: dict, project_id: int, issue_id: int, user_id: int, note_body: str
+    cli_args: dict, project_id: int, issue_id: int, note_body: str
 ) -> dict:
     """
     Adds a note to the given issue.

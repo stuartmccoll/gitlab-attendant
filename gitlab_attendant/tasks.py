@@ -271,7 +271,7 @@ def notify_issue_assignees(cli_args: dict, days: int):
             }
             if overdue_issue["assignee"]
             else {
-                "body": f"Nudging users @{','.join(str(user['username']) for user in overdue_issue['assignees'])} - this issue was due on {overdue_issue['due_date']}."
+                "body": f"Nudging users {', '.join(str('@{}'.format(user['username'])) for user in overdue_issue['assignees'])} - this issue was due on {overdue_issue['due_date']}."
             },
         )
         for overdue_issue in overdue_issues
