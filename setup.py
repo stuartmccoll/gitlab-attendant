@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="gitlab-attendant",
-    version="1.0.0",
+    version="0.0.1",
     author="Stuart McColl",
     author_email="it@stuartmccoll.co.uk",
     description="A GitLab bot that tidies and attends to repositories",
@@ -17,8 +17,8 @@ setuptools.setup(
         "console_scripts": ["gitlab-attendant=gitlab_attendant.main:main"]
     },
     packages=setuptools.find_packages(),
-    install_requires=["requests"],
-    tests_require=["unittest", "mock"],
+    install_requires=["requests", "pytz", "python-dateutil", "schedule==0.5.0"],
+    tests_require=["unittest", "mock", "pytz"],
     classifiers=(
         "Environment :: Console",
         "Programming Language :: Python",
